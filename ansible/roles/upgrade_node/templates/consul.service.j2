@@ -1,0 +1,15 @@
+[Unit]
+Description=Consul service ({{node_role}})
+Requires=network-online.target
+After=network.target
+
+[Service]
+PIDFile={{ consul_pid_file }}
+Restart=on-failure
+ExecStart={{ consul_home }}/consul agent $OPTIONS --pid-file={{ consul_pid_file }} --config-dir={{ consul_config_dir }}/{{node_role}} --bind={{ansible_host}}
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGINT
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

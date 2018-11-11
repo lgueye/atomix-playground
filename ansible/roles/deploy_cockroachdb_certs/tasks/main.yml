@@ -1,0 +1,21 @@
+---
+
+- name: "create certs deploy dir {{ cockroachdb_remote_install_dir }}/certs"
+  file: state='directory' path="{{ cockroachdb_remote_install_dir }}/certs"
+  when: cockroachdb_security_mode == 'secure'
+
+- name: "copy ca from {{ cockroachdb_local_certs_dir }}/ca/ca.crt to {{ cockroachdb_remote_install_dir }}/certs"
+  copy: src="{{ cockroachdb_local_certs_dir }}/ca/ca.crt" dest="{{ cockroachdb_remote_install_dir }}/certs/" mode='600'
+  when: cockroachdb_security_mode == 'secure'
+
+- name: "copy client user certificate from {{ cockroachdb_local_certs_dir }}/client/client* to {{ cockroachdb_remote_install_dir }}/certs"
+  copy: src="{{ item }}" dest="{{ cockroachdb_remote_install_dir }}/certs/" mode='600'
+  when: cockroachdb_security_mode == 'secure' and node_role == 'client'
+  with_fileglob:
+    - "{{ cockroachdb_local_certs_dir }}/{{ cockroach_user }}/*"
+
+- name: "copy certs from {{ cockroachdb_local_certs_dir }}/node/* to {{ cockroachdb_remote_install_dir }}/certs"
+  copy: src="{{ item }}" dest="{{ cockroachdb_remote_install_dir }}/certs/" mode='600'
+  when: cockroachdb_security_mode == 'secure' and node_role == 'node'
+  with_fileglob:
+    - "{{ cockroachdb_local_certs_dir }}/{{ inventory_hostname }}/*"

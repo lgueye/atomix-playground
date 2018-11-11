@@ -1,0 +1,159 @@
+# Usage: export ANSIBLE_TF_DIR=../terraform/digitalocean && ansible-playbook --vault-id ~/.ansible_vault_pass.txt -i /etc/ansible/terraform.py sos.yml -e "target_env=staging rev=`git log -1 --pretty='%h'` security_mode=secure"
+
+# Locally register inventory hosts
+- hosts: 'localhost'
+  connection: 'local'
+  tasks:
+  - block:
+    - include_role: {name: 'register_inventory_hosts'}
+    rescue:
+    - fail:
+        msg: "Failed to register inventory hosts"
+
+# Locally download consul
+- hosts: 'localhost'
+  connection: 'local'
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: {name: 'download_consul'}
+    rescue:
+    - fail:
+        msg: "Failed to download consul to {{ consul_download_dir }}"
+
+# Deploy consul on all hosts (clients and servers)
+- hosts: "&{{ target_env }}:consul-client:consul-server"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'deploy_consul'}
+    rescue:
+    - fail:
+        msg: "Failed to deploy consul to all nodes (client, servers)"
+
+# Upgrade consul on all servers
+- hosts: "{{target_env}}:&consul-server"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'upgrade_node'}
+      vars: {node_role: 'server'}
+    rescue:
+    - fail:
+        msg: "Failed to upgrade consul cluster nodes"
+
+# Upgrade consul on all clients
+- hosts: "{{target_env}}:&consul-client"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'oefenweb.dnsmasq'}
+    - name: "[systemd-resolved vs dnsmasq conflict]: update local name server"
+      lineinfile:
+        path: /etc/resolv.conf
+        regexp: '^nameserver 127.0.0.53'
+        line: 'nameserver 127.0.0.1'
+    - name: "[systemd-resolved vs dnsmasq conflict]: stop systemd-resolved.service"
+      service: name="systemd-resolved" state='stopped'
+    - name: "[systemd-resolved vs dnsmasq conflict]: disable systemd-resolved.service"
+      service: name="systemd-resolved" enabled='false'
+    - name: "[systemd-resolved vs dnsmasq conflict]: restart dnsmasq.service"
+      service: name="dnsmasq" state='restarted'
+    - include_role: {name: 'upgrade_node'}
+      vars: {node_role: 'client'}
+    rescue:
+    - fail:
+        msg: "Failed to upgrade consul client"
+
+# Locally download cockroachdb
+- hosts: 'localhost'
+  connection: 'local'
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: {name: 'download_cockroachdb'}
+    rescue:
+    - fail:
+        msg: "Failed to download cockroachdb to {{ cockroachdb_download_dir }}"
+
+# Produce ca.crt
+# For each node produce node.crt, node.key
+# Produce client.crt, client.key
+- hosts: 'localhost'
+  connection: 'local'
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: {name: 'produce_cockroachdb_certs'}
+      when: cockroachdb_security_mode == 'secure'
+    rescue:
+    - fail:
+        msg: "Failed to produce cockroachdb certs to {{ cockroachdb_local_certs_dir }}"
+
+# Deploy cockroachdb on all hosts (servers)
+- hosts: "{{ target_env }}:&cockroachdb-server"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'deploy_cockroachdb'}
+    - include_role: {name: 'deploy_cockroachdb_certs'}
+      vars: {node_role: 'node'}
+    - include_role: {name: 'deploy_cockroachdb_certs'}
+      vars: {node_role: 'client', cockroach_user: 'root'}
+    - include_role: {name: 'upgrade_cockroachdb'}
+    rescue:
+    - fail:
+        msg: "Failed to deploy cockroachdb to all nodes (servers)"
+
+# Create database, create user, create privileges
+- hosts: "{{ target_env }}:&cockroachdb-master"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'initialize_cockroach_cluster'}
+    - include_role: {name: 'db_privileges'}
+    rescue:
+    - fail:
+        msg: "Failed to deploy cockroachdb to all nodes (servers)"
+
+# Locally build service
+- hosts: 'localhost'
+  connection: 'local'
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: {name: 'build_service'}
+    rescue:
+    - fail:
+        msg: "Failed to build {{ servicename }} service"
+
+# Upgrade sos service
+- hosts: "{{target_env}}:&sos"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'deploy_cockroachdb_certs'}
+      vars: {node_role: 'client', cockroach_user: "{{ servicename }}", cockroachdb_remote_install_dir: "{{ remote_revision_path }}"}
+    - include_role: {name: 'deploy_service'}
+    - include_role: {name: 'upgrade_service'}
+      vars: {register_service: true, cockroach_user: "{{ servicename }}"}
+    rescue:
+    - fail:
+        msg: "Failed to upgrade {{ servicename }} service"
+
+# Upgrade load balancers
+- hosts: "{{target_env}}:&lb"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - include_role: {name: 'upgrade_lb'}
+    rescue:
+    - fail:
+        msg: "Failed to upgrade load balancers"

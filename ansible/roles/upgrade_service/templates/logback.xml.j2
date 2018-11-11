@@ -1,0 +1,20 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <appender name="FILEAPPENDER" class="ch.qos.logback.core.FileAppender">
+        <file>{{remote_root_log_path}}/{{ servicename }}.log</file>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <logger name="io.agileinfra" level="{{ app_logging_level }}" additivity="false">
+        <appender-ref ref="FILEAPPENDER"/>
+    </logger>
+    <logger name="org.springframework" level="{{ spring_logging_level }}" additivity="false">
+        <appender-ref ref="FILEAPPENDER"/>
+    </logger>
+    <root level="{{ root_logging_level }}">
+        <appender-ref ref="FILEAPPENDER"/>
+    </root>
+</configuration>

@@ -1,0 +1,126 @@
+architecture_map:
+  # this first entry seems redundant
+  # (but it's required for reasons)
+  amd64: 'amd64'
+  x86_64: 'amd64'
+  armv6l: 'arm'
+  armv7l: 'arm'
+  aarch64: 'arm64'
+  32-bit: '386'
+  64-bit: 'amd64'
+os_architecture: "{{ architecture_map[ansible_architecture] }}"
+os_family: "\
+  {% if ansible_os_family == 'Windows' %}\
+    {{ 'windows' }}\
+  {% else %}\
+    {{ ansible_system | lower }}\
+  {% endif %}"
+
+service_password: !vault |
+    $ANSIBLE_VAULT;1.1;AES256
+    34356131633164313534383632653231653430303335333165363834653461333264356663616362
+    6233656465616333663931356665616630376336626463360a623166376538646438376539353063
+    32633366653535643266316361313037626434353033376631363932396364633937386261393430
+    6231643561393163360a666362386562333134326661643461393636376639336263336634666232
+    3537
+
+consul_product: 'consul'
+consul_version: '1.2.3'
+
+consul_os_packages: ['unzip']
+consul_checksum_file_url: "https://releases.hashicorp.com/{{ consul_product }}/{{ consul_version }}/{{ consul_product }}_{{ consul_version}}_SHA256SUMS"
+consul_pkg: "{{ consul_product }}_{{ consul_version }}_{{ os_family }}_{{ os_architecture }}"
+consul_zip_url: "https://releases.hashicorp.com/{{ consul_product }}/{{ consul_version }}/{{ consul_pkg }}.zip"
+consul_download_dir: '/tmp/{{ consul_product }}/downloads'
+
+consul_user: '{{ consul_product }}'
+consul_home: '/var/lib/{{ consul_product }}'
+consul_group: '{{ consul_product }}'
+consul_data_dir: '/var/{{ consul_product }}'
+consul_log_dir: '/var/log/{{ consul_product }}'
+consul_pid_dir: '/run/{{ consul_product }}'
+consul_pid_file: '{{ consul_pid_dir }}/{{ consul_product }}.pid'
+consul_config_dir: '/etc/{{ consul_product }}.d'
+consul_datacenter: 'digitalocean'
+consul_encryption_key: !vault |
+  $ANSIBLE_VAULT;1.1;AES256
+  63383532623231333433626264636632623131366334643739663666613533646334356538663239
+  3234616165366337323631376539303837313861353239390a393866613561316164313265393432
+  37636130383063353763623530316134633231393665363162636463666366383837336362343230
+  3761353035316633640a656535366566633566373233323135393439366237343233653661623363
+  36363163313866636163663865663638363661373639643533313435613466636134
+
+### Ports
+consul_ports:
+  dns: "{{ consul_ports_dns | default('8600', true) }}"
+  http: "{{ consul_ports_http | default('8500', true) }}"
+  https: "{{ consul_ports_https | default('-1', true) }}"
+  rpc: "{{ consul_ports_rpc | default('8400', true) }}"
+  serf_lan: "{{ consul_ports_serf_lan | default('8301', true) }}"
+  serf_wan: "{{ consul_ports_serf_wan | default('8302', true) }}"
+  server: "{{ consul_ports_server | default('8300', true) }}"
+
+service_startup_timeout: 60
+
+# DNSMasq
+dnsmasq_dnsmasq_conf:
+- |
+  port=53
+  bind-interfaces
+  server=8.8.8.8
+  server=8.8.4.4
+
+dnsmasq_dnsmasq_d_files_present:
+  cache:
+  - |
+    domain-needed
+    bogus-priv
+    no-hosts
+    dns-forward-max=150
+    cache-size=1000
+    neg-ttl=3600
+    no-poll
+    no-resolv
+  consul:
+  - |
+    server=/consul/127.0.0.1#{{ consul_ports.dns }}
+
+servicename: 'sos'
+serviceport: 8080
+
+local_project_path: "{{ role_path }}/../../../services/{{ servicename }}"
+remote_root_path: "/var/{{ servicename }}"
+remote_revision_path: "/var/lib/{{ servicename }}/{{ rev }}"
+remote_root_log_path: "/var/log/{{ servicename }}"
+app_logging_level: 'INFO'
+spring_logging_level: 'WARN'
+root_logging_level: 'WARN'
+
+domain: "agileinfra.io"
+consuldemo_password: "{{ service_password }}"
+
+htpasswd_path: '/etc/nginx/passwdfile'
+
+cockroachdb_product: 'cockroach'
+cockroachdb_version: '2.0.6'
+
+cockroachdb_pkg: "{{ cockroachdb_product }}-v{{ cockroachdb_version}}.{{ os_family }}-{{ os_architecture }}"
+cockroachdb_tgz_url: "https://binaries.cockroachdb.com/{{ cockroachdb_pkg }}.tgz"
+cockroachdb_download_dir: "/tmp/{{ cockroachdb_product }}/downloads"
+
+cockroachdb_home: "/var/lib/{{ cockroachdb_product }}"
+cockroachdb_data_dir: "/var/{{ cockroachdb_product }}"
+cockroachdb_log_dir: "/var/log/{{ cockroachdb_product }}"
+cockroachdb_pid_dir: "/run/{{ cockroachdb_product }}"
+cockroachdb_pid_file: "{{ cockroachdb_pid_dir }}/{{ cockroachdb_product }}.pid"
+
+cockroachdb_remote_install_dir: "{{ cockroachdb_home }}/{{ cockroachdb_version }}"
+cockroachdb_local_certs_dir: "{{ cockroachdb_download_dir }}/certs"
+
+cockroachdb_ports:
+  http: "{{ cockroachdb_ports_http | default('8080', true) }}"
+  server: "{{ cockroachdb_ports_server | default('26257', true) }}"
+
+cockroachdb_security_mode: "{{ security_mode | default('insecure', true) }}"
+cockroach_users: ["root", "{{ servicename }}"]
+cockroachdb_service_password: "{{ service_password }}"

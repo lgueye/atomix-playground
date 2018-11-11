@@ -1,0 +1,46 @@
+# Usage: export ANSIBLE_TF_DIR=../terraform/digitalocean && ansible-playbook -i /etc/ansible/terraform.py outage.yml -e "target_env=staging"
+
+# stop nginx primary
+- hosts: "&{{ target_env }}:&lb:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'stop nginx'
+      service: name='nginx' state='stopped'
+    rescue:
+    - fail:
+        msg: "Failed to stop primary load balancer"
+# stop sos primary
+- hosts: "&{{ target_env }}:&sos:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'stop {{ servicename }}'
+      service: name='{{ servicename }}' state='stopped'
+    rescue:
+    - fail:
+        msg: "Failed to stop primary {{ servicename }}"
+# stop cockroach primary
+- hosts: "&{{ target_env }}:&cockroachdb-server:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'stop {{ cockroachdb_product }}'
+      service: name='{{ cockroachdb_product }}' state='stopped'
+    rescue:
+    - fail:
+        msg: "Failed to stop primary {{ cockroachdb_product }}"
+# stop consul primary
+- hosts: "&{{ target_env }}:&consul-server:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'stop {{ consul_product }}'
+      service: name='{{ consul_product }}' state='stopped'
+    rescue:
+    - fail:
+        msg: "Failed to stop primary {{ consul_product }}"

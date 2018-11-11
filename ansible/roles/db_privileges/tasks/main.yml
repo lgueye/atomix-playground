@@ -1,0 +1,14 @@
+---
+
+- name: "Create privileges from node {{ hostvars[ansible_host] }}"
+  shell: "{{ cockroachdb_home }}/{{ cockroachdb_product }} sql --certs-dir={{ cockroachdb_home }}/certs --execute \"{{ item }}\""
+  with_items:
+  - "CREATE DATABASE IF NOT EXISTS {{ servicename }}_db WITH ENCODING 'UTF-8'"
+  - "CREATE USER IF NOT EXISTS {{ servicename }}_user WITH PASSWORD '{{cockroachdb_service_password}}'"
+  - "GRANT ALL ON DATABASE {{ servicename }}_db TO {{ servicename }}_user"
+
+- name: "Copy schema.sql to {{ cockroachdb_home }}/"
+  copy: src="schema.sql" dest="{{ cockroachdb_home }}/"
+
+- name: "Create schema from node {{ hostvars[ansible_host] }}"
+  shell: "{{ cockroachdb_home }}/{{ cockroachdb_product }} sql --certs-dir={{ cockroachdb_home }}/certs --database={{ servicename }}_db < {{ cockroachdb_home }}/schema.sql"

@@ -1,0 +1,56 @@
+# Usage: export ANSIBLE_TF_DIR=../terraform/digitalocean && ansible-playbook -i /etc/ansible/terraform.py restore.yml -e "target_env=staging"
+
+# start consul primary
+- hosts: "&{{ target_env }}:&consul-server:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'start {{ consul_product }}'
+      service: name='{{ consul_product }}' state='started'
+    rescue:
+    - fail:
+        msg: "Failed to start primary {{ consul_product }}"
+- hosts: "&{{ target_env }}:&consul-client"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'restart {{ consul_product }}'
+      service: name='{{ consul_product }}' state='restarted'
+    rescue:
+    - fail:
+        msg: "Failed to start primary {{ consul_product }}"
+# start cockroach primary
+- hosts: "&{{ target_env }}:&cockroachdb-server:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'start {{ cockroachdb_product }}'
+      service: name='{{ cockroachdb_product }}' state='started'
+    rescue:
+    - fail:
+        msg: "Failed to start primary {{ cockroachdb_product }}"
+# start sos primary
+- hosts: "&{{ target_env }}:&sos:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'start {{ servicename }}'
+      service: name='{{ servicename }}' state='started'
+    rescue:
+    - fail:
+        msg: "Failed to start primary {{ servicename }}"
+# start nginx primary
+- hosts: "&{{ target_env }}:&lb:&primary"
+  remote_user: "root"
+  become: 'yes'
+  tasks:
+  - block:
+    - name: 'start nginx'
+      service: name='nginx' state='started'
+    rescue:
+    - fail:
+        msg: "Failed to start primary load balancer"

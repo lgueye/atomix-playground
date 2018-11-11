@@ -1,0 +1,44 @@
+---
+- name: "Create consul download dir {{ consul_download_dir }} if needed "
+  file: state='directory' dest="{{ consul_download_dir }}"
+
+- name: "Read package checksum file from {{ consul_download_dir }}/consul_{{ consul_version }}_SHA256SUMS"
+  stat:
+    path: "{{ consul_download_dir }}/consul_{{ consul_version }}_SHA256SUMS"
+  run_once: true
+  register: consul_checksum
+
+- name: "Download package checksum file from {{ consul_checksum_file_url }} to {{ consul_download_dir }}/consul_{{ consul_version }}_SHA256SUMS"
+  get_url:
+    url: "{{ consul_checksum_file_url }}"
+    dest: "{{ consul_download_dir }}/consul_{{ consul_version }}_SHA256SUMS"
+  run_once: true
+  when: not consul_checksum.stat.exists | bool
+
+- name: "Read package checksum from {{ consul_download_dir }}/consul_{{ consul_version }}_SHA256SUMS"
+  shell:
+      grep "{{ consul_pkg }}" "{{ consul_download_dir }}/consul_{{ consul_version }}_SHA256SUMS" | awk '{print $1}'
+  run_once: true
+  register: consul_sha256
+
+- name: "Check Consul package file from {{ consul_download_dir }}/{{ consul_pkg }}"
+  stat:
+    path: "{{ consul_download_dir }}/{{ consul_pkg }}"
+  run_once: true
+  register: consul_package
+
+- name: "Download Consul package from {{ consul_zip_url }} to {{ consul_download_dir }}/{{ consul_pkg }}"
+  get_url:
+    url: "{{ consul_zip_url }}"
+    dest: "{{ consul_download_dir }}/{{ consul_pkg }}"
+    checksum: "sha256:{{ consul_sha256.stdout }}"
+    timeout: "42"
+  run_once: true
+  when: not consul_package.stat.exists | bool
+
+- name: "Unarchive Consul package from {{ consul_download_dir }}/{{ consul_pkg }} to {{ consul_download_dir }}/"
+  unarchive:
+    src: "{{ consul_download_dir }}/{{ consul_pkg }}"
+    dest: "{{ consul_download_dir }}/"
+    creates: "{{ consul_download_dir }}/consul"
+  run_once: true

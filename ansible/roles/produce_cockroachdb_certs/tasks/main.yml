@@ -1,0 +1,29 @@
+---
+- name: "Delete {{ cockroachdb_product }} certs local dir"
+  file: state='absent' dest="{{ cockroachdb_local_certs_dir }}"
+
+- name: "Create {{ cockroachdb_product }} ca certs local dir {{ cockroachdb_local_certs_dir }}"
+  file: state='directory' dest="{{ cockroachdb_local_certs_dir }}/{{ item }}"
+  with_items:
+  - 'ca'
+
+- name: "Create {{ cockroachdb_product }} clients certs local dir {{ cockroachdb_local_certs_dir }}"
+  file: state='directory' dest="{{ cockroachdb_local_certs_dir }}/{{ item }}"
+  with_items: "{{ cockroach_users }}"
+
+- name: "Create {{ cockroachdb_product }} nodes certs local dir"
+  file: state='directory' dest="{{ cockroachdb_local_certs_dir }}/{{ item }}"
+  with_items: "{{ groups['cockroachdb-server'] }}"
+
+- name: "Produce {{ cockroachdb_product }} ca certs to local dir {{ cockroachdb_local_certs_dir }}/ca"
+  shell: "{{ cockroachdb_download_dir }}/{{ cockroachdb_pkg}}/{{ cockroachdb_product }} cert create-ca --certs-dir={{ cockroachdb_local_certs_dir }}/ca --ca-key={{ cockroachdb_local_certs_dir }}/ca/ca.key"
+  with_items:
+  - 'ca'
+
+- name: "Produce {{ cockroachdb_product }} client certs to local dir {{ cockroachdb_local_certs_dir }}/user"
+  shell: "{{ cockroachdb_download_dir }}/{{ cockroachdb_pkg}}/{{ cockroachdb_product }} cert create-client {{ item }} --certs-dir={{ cockroachdb_local_certs_dir }}/ca --ca-key={{ cockroachdb_local_certs_dir }}/ca/ca.key && mv {{ cockroachdb_local_certs_dir }}/ca/client.{{ item }}* {{ cockroachdb_local_certs_dir }}/{{ item }}/"
+  with_items: "{{ cockroach_users }}"
+
+- name: "Produce {{ cockroachdb_product }} nodes certs to local dir {{ cockroachdb_local_certs_dir }}/node"
+  shell: "{{ cockroachdb_download_dir }}/{{ cockroachdb_pkg}}/{{ cockroachdb_product }} cert create-node {{ hostvars[item].ansible_host }} localhost 127.0.0.1 --certs-dir={{ cockroachdb_local_certs_dir }}/ca --ca-key={{ cockroachdb_local_certs_dir }}/ca/ca.key && mv {{ cockroachdb_local_certs_dir }}/ca/node* {{ cockroachdb_local_certs_dir }}/{{ item }}"
+  with_items: "{{ groups['cockroachdb-server'] }}"

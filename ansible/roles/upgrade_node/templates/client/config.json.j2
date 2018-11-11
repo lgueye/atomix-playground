@@ -1,0 +1,11 @@
+{
+  "server": false,
+  "datacenter": "{{ consul_datacenter }}",
+  "data_dir": "{{ consul_data_dir }}",
+  "encrypt": "{{ consul_encryption_key }}",
+  "log_level": "INFO",
+  "enable_syslog": true,
+  "ui": true,
+  "retry_join": {% set _res = []%}{%for var in (groups['consul-server'] | intersect( groups[ vars['target_env'] ]) | difference( [hostvars[inventory_hostname]] )) %} {{ _res.append(hostvars[var].ansible_host) }} {% endfor %} {{ _res | to_json}}
+
+}

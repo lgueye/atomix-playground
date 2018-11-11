@@ -1,0 +1,11 @@
+---
+- name: make sure the known hosts file exists
+  file: path='~/.ssh/known_hosts' state="touch"
+
+- name: remove from known hosts
+  shell: "ssh-keygen -R {{ item }}"
+  with_items: "{{ groups[ vars['target_env'] ] }}"
+
+- name: add to know hosts
+  shell: "ssh-keyscan -H -T 10 {{ hostvars[item].ansible_host }} >> ~/.ssh/known_hosts"
+  with_items: "{{ groups[ vars['target_env'] ]}}"

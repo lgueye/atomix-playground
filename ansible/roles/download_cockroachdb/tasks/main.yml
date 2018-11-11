@@ -1,0 +1,23 @@
+---
+- name: "Create cockroachdb download dir {{ cockroachdb_download_dir }} if needed"
+  file: state='directory' dest="{{ cockroachdb_download_dir }}"
+
+- name: "Check cockroach package file from {{ cockroachdb_download_dir }}/{{ cockroachdb_pkg }}.tgz"
+  stat:
+    path: "{{ cockroachdb_download_dir }}/{{ cockroachdb_pkg }}.tgz"
+  run_once: true
+  register: cockroachdb_package
+
+- name: "Download cockroachdb package from {{ cockroachdb_tgz_url }} to {{ cockroachdb_download_dir }}"
+  get_url:
+    url: "{{ cockroachdb_tgz_url }}"
+    dest: "{{ cockroachdb_download_dir }}/"
+    timeout: "42"
+  run_once: true
+  when: not cockroachdb_package.stat.exists | bool
+
+- name: "Unarchive cockroachdb package from {{ cockroachdb_download_dir }}/{{ cockroachdb_pkg }}.tgz to {{ cockroachdb_download_dir }}/"
+  unarchive:
+    src: "{{ cockroachdb_download_dir }}/{{ cockroachdb_pkg }}.tgz"
+    dest: "{{ cockroachdb_download_dir }}"
+  run_once: true

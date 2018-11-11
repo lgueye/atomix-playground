@@ -1,0 +1,7 @@
+---
+
+- name: "create {{ remote_revision_path }} deploy dir"
+  file: state='directory' path="{{ remote_revision_path }}"
+
+- name: "copy local file {{ local_project_path }}/target/{{servicename}}-0.0.1-SNAPSHOT.jar to remote file {{ remote_revision_path }}/{{servicename}}.jar"
+  copy: src="{{ local_project_path }}/target/{{servicename}}-0.0.1-SNAPSHOT.jar" dest="{{ remote_revision_path }}/{{servicename}}.jar" mode='u=xrw,g=xr,o=r'

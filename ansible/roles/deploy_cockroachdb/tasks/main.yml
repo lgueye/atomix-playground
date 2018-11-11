@@ -1,0 +1,7 @@
+---
+
+- name: "create deploy dir {{ cockroachdb_remote_install_dir }}"
+  file: state='directory' path="{{ cockroachdb_remote_install_dir }}"
+
+- name: "copy {{ cockroachdb_download_dir }}/{{ cockroachdb_pkg }}/{{ cockroachdb_product }} to {{ cockroachdb_remote_install_dir }}/"
+  copy: src="{{ cockroachdb_download_dir }}/{{ cockroachdb_pkg}}/{{ cockroachdb_product }}" dest="{{ cockroachdb_remote_install_dir }}/{{ cockroachdb_product }}" mode='u=xrw,g=xr,o=r'

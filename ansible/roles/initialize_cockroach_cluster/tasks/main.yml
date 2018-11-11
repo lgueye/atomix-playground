@@ -1,0 +1,11 @@
+---
+
+- name: "Initialize cockroach cluster from node {{ hostvars[ansible_host] }}"
+  shell: "{{ cockroachdb_home }}/{{ cockroachdb_product }} init --insecure --host={{ hostvars[ansible_host] }}"
+  ignore_errors: true
+  when: cockroachdb_security_mode == 'insecure'
+
+- name: "Initialize cockroach cluster from node {{ hostvars[ansible_host] }}"
+  shell: "{{ cockroachdb_home }}/{{ cockroachdb_product }} init --certs-dir={{ cockroachdb_home }}/certs --host={{ hostvars[ansible_host] }}"
+  ignore_errors: true
+  when: cockroachdb_security_mode == 'secure'

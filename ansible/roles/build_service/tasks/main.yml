@@ -1,0 +1,7 @@
+---
+
+- name: "building job located at {{ local_project_path }}"
+  command: mvn clean install
+  args:
+    chdir: "{{ role_path }}/../../../services/{{ servicename }}"
+

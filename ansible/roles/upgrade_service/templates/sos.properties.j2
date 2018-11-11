@@ -1,0 +1,11 @@
+server.port={{ serviceport }}
+logging.config={{ remote_root_path }}/logback.xml
+spring.datasource.driverClassName=org.postgresql.Driver
+spring.datasource.url=jdbc:postgresql://cockroach.service.consul:{{ cockroachdb_ports.server }}/{{ servicename }}_db
+spring.datasource.username={{ servicename }}_user
+spring.datasource.password={{ cockroachdb_service_password }}
+spring.datasource.connectionProperties=user={{ servicename }};sslmode=require;sslrootcert={{ cockroachdb_remote_install_dir }}/certs/ca.crt;sslkey={{ cockroachdb_remote_install_dir }}/certs/client.{{ cockroach_user }}.pk8;sslcert={{ cockroachdb_remote_install_dir }}/certs/client.{{ cockroach_user }}.crt
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.show-sql=false
+spring.jpa.generate-ddl=false
+spring.datasource.validationQuery=SELECT 1

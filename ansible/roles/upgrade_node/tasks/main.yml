@@ -1,0 +1,42 @@
+---
+
+- name: 'create consul important dirs'
+  file: state='directory' path="{{ item }}"
+  with_items:
+  - "{{ consul_data_dir }}"
+  - "{{ consul_pid_dir }}"
+  - "{{ consul_config_dir }}/{{node_role}}"
+  - "{{ consul_log_dir }}"
+
+- name: "stop consul service"
+  service: name='consul' state='stopped'
+  ignore_errors: 'yes'
+
+- name: 'unlink consul older older revision from {{ consul_home }}/consul'
+  file: state='absent' dest="{{ consul_home }}/consul"
+  ignore_errors: 'yes'
+
+- name: "link {{ consul_home }}/{{ consul_version }}/consul to {{ consul_home }}/consul"
+  file: state='link' src="{{ consul_home }}/{{ consul_version }}/consul" dest="{{ consul_home }}/consul"
+
+- name: 'extrapolate {{node_role}}/config.json.j2 to {{ consul_config_dir }}/{{node_role}}/config.json'
+  template: src='{{node_role}}/config.json.j2' dest="{{ consul_config_dir }}/{{node_role}}/config.json"
+
+- name: 'extrapolate consul.service.j2 to /etc/systemd/system/consul.service'
+  template: src='consul.service.j2' dest="/etc/systemd/system/consul.service"
+
+- name: "reload systemd"
+  command: systemctl daemon-reload
+
+# start
+- name: "enable and start consul.service"
+  service: name="consul" enabled='yes' state='restarted'
+
+# wait for ports to be available
+- name: "wait for port consul_ports.server to be available"
+  wait_for: host="{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}" port="{{ consul_ports.server }}" delay='1' timeout="{{ service_startup_timeout }}"
+  when: node_role == 'server'
+
+- name: "wait for port consul_ports.http to be available"
+  wait_for: port="{{ consul_ports.http }}" delay='1' timeout="{{ service_startup_timeout }}"
+  when: node_role == 'client'

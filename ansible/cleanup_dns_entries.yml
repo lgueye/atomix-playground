@@ -1,0 +1,39 @@
+# Usage: export ANSIBLE_TF_DIR=../terraform/digitalocean && ansible-playbook -i /etc/ansible/terraform.py cleanup_dns_entries.yml -e "target_env=staging"
+
+- hosts: 'localhost'
+  connection: 'local'
+  tasks:
+  - block:
+    - name: "remove fallback.{{ item }}.{{ domain }}"
+      digital_ocean_domain:
+        state: absent
+        name: "fallback.{{ item }}.{{ domain }}"
+        oauth_token: "{{ lookup('env','DO_API_TOKEN') }}"
+      with_items:
+        - "{{ servicename }}"
+        - "{{ consul_product }}"
+
+    - name: "remove primary.{{ item }}.{{ domain }}"
+      digital_ocean_domain:
+        state: absent
+        name: "primary.{{ item }}.{{ domain }}"
+        oauth_token: "{{ lookup('env','DO_API_TOKEN') }}"
+      with_items:
+        - "{{ servicename }}"
+        - "{{ consul_product }}"
+
+    - name: "remove www.{{ domain }}"
+      digital_ocean_domain:
+        state: absent
+        name: "www.{{ domain }}"
+        oauth_token: "{{ lookup('env','DO_API_TOKEN') }}"
+
+    - name: "remove fallback.{{ domain }}"
+      digital_ocean_domain:
+        state: absent
+        name: "fallback.{{ domain }}"
+        oauth_token: "{{ lookup('env','DO_API_TOKEN') }}"
+
+    rescue:
+    - fail:
+        msg: "Failed to register inventory hosts"

@@ -1,0 +1,9 @@
+.idea
+*.tfstate
+*.backup
+.terraform
+*.info
+*.iml
+secret.tf
+target
+*.retry

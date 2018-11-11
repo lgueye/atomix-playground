@@ -1,0 +1,20 @@
+---
+# Add group
+#- name: Add Consul group
+#  group:
+#    name: "{{ consul_group }}"
+#    state: present
+#
+## Add user
+#- name: Add Consul user
+#  user:
+#    name: "{{ consul_user }}"
+#    comment: "Consul user"
+#    group: "{{ consul_group }}"
+#    system: true
+#    state: present
+- name: 'create deploy dir {{ consul_home }}/{{ consul_version }}'
+  file: state='directory' path="{{ consul_home }}/{{ consul_version }}"
+
+- name: 'copy {{ consul_download_dir }}/consul to {{ consul_home }}/{{ consul_version }}/'
+  copy: src="{{ consul_download_dir }}/consul" dest="{{ consul_home }}/{{ consul_version }}/consul" mode='u=xrw,g=xr,o=r'

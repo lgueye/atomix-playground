@@ -1,0 +1,12 @@
+{
+  "bootstrap": false,
+  "server": true,
+  "datacenter": "{{ consul_datacenter }}",
+  "data_dir": "{{ consul_data_dir }}",
+  "encrypt": "{{ consul_encryption_key }}",
+  "client_addr": "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}",
+  "bootstrap_expect": {{ groups['consul-server'] | count | to_json }},
+  "retry_join": {% set _res = []%}{%for var in (groups['consul-server'] | intersect( groups[ vars['target_env'] ]) | difference( [hostvars[inventory_hostname]] )) %} {{ _res.append(hostvars[var].ansible_host) }} {% endfor %} {{ _res | to_json}},
+  "log_level": "INFO",
+  "enable_syslog": true
+}

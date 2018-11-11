@@ -1,0 +1,15 @@
+{
+  "service": {
+    "name": "{{ cockroachdb_product }}",
+    "port": {{ consul_ports.server }},
+    "tags": ["{{ target_env }}", "{{ cockroachdb_product }}"],
+    "checks": [
+      {
+         "id": "{{ cockroachdb_product }}",
+         "name": "{{ cockroachdb_product }}",
+         "http": "http://{{ ansible_host }}:{{ cockroachdb_ports.http }}/health?ready=1",
+         "interval": "10s"
+      }
+    ]
+  }
+}

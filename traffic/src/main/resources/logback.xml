@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false" scan="true" scanPeriod="30 seconds">
+    <timestamp key="timestamp-by-second" datePattern="yyyyMMdd'T'HHmmss"/>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} : - %msg %n</pattern>
+        </encoder>
+    </appender>
+    <logger name="io.agileinfra"  level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <!--<appender-ref ref="File-Appender" />-->
+        <!--<appender-ref ref="Async-Appender" />-->
+    </logger>
+    <logger name="org.springframework"  level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <!--<appender-ref ref="File-Appender" />-->
+        <!--<appender-ref ref="Async-Appender" />-->
+    </logger>
+    <logger name="org.hibernate"  level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <!--<appender-ref ref="File-Appender" />-->
+        <!--<appender-ref ref="Async-Appender" />-->
+    </logger>
+    <root>
+        <appender-ref ref="CONSOLE" level="WARN"/>
+    </root>
+</configuration>

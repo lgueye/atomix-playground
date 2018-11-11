@@ -1,0 +1,15 @@
+[Unit]
+Description={{ cockroachdb_product }} database cluster node
+Requires=network.target
+[Service]
+Type=notify
+WorkingDirectory={{ cockroachdb_data_dir }}
+ExecStart={{ cockroachdb_home }}/{{ cockroachdb_product }} start --certs-dir={{ cockroachdb_home }}/certs --advertise-host={{ ansible_host }} --join={% for var in groups['cockroachdb-server'] %}{{  hostvars[var].ansible_host }}:{{ cockroachdb_ports.server }}{{ "," if not loop.last else ""}}{% endfor %} --cache=.25 --max-sql-memory=.25  --pid-file={{ cockroachdb_pid_file }}
+TimeoutStopSec=60
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cockroach
+[Install]
+WantedBy=default.target
